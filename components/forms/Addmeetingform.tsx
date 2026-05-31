@@ -1,42 +1,42 @@
-// components/forms/AddWorkForm.tsx
+// components/forms/AddMeetingForm.tsx
 import toast, { Toaster } from 'react-hot-toast';
 import Modal from "../../components/Modal";
 import { useState, useRef, useEffect } from "react";
-import { getAllTeams } from '../../api/lib/request/teamsRequest';
-import { createWork, Work, getWorkById, updateWork } from '../../api/lib/request/worksRequests';
+import { getAllTeams } from '../../api/lib/request/teamsRequest'
+import { createMeeting, getMeetingById, updateMeeting } from '../../api/lib/request/meetingRequest';
 import AddTeamForm from './Addteams';
 
 import {
-    Briefcase,
     Calendar,
     Clock,
-    Flag,
     FileText,
     Users,
     ChevronDown,
     Check,
-    AlertCircle,
     X,
     User,
     Plus,
     Loader,
+    MessageSquare,
+    Circle,
+    CheckCircle,
+    RefreshCw
 } from "lucide-react";
 
-interface AddWorkFormProps {
-    workId?: string;
+interface AddMeetingFormProps {
     meetingId?: string;
-    meetingTeamIds?: string[];
     onClose: () => void;
-    defaultDeadline?: Date;
-    onSubmit?: (data: AddWorkFormData) => void;
+    defaultDateTime?: Date;
+    onSubmit?: (data: AddMeetingFormData) => void;
 }
 
-export interface AddWorkFormData {
-    workTitle: string;
+export interface AddMeetingFormData {
+    meetingTitle: string;
     assignToTeamIds: string[];
-    deadlineDateTime: string; // Changed to single datetime string
-    priority: 'low' | 'medium' | 'high' | 'very-high';
+    dateTime: string;
     description: string;
+    notes?: string;
+    status?: "pending" | "in-progress" | "completed";
 }
 
 interface TeamLead {
@@ -57,46 +57,27 @@ interface TeamOption {
     memberCount?: number;
 }
 
-// Priority options with colors and icons
-const priorityOptions = [
-    { value: 'low', label: 'Low', color: 'green', icon: '🟢' },
-    { value: 'medium', label: 'Medium', color: 'blue', icon: '🔵' },
-    { value: 'high', label: 'High', color: 'orange', icon: '🟠' },
-    { value: 'very-high', label: 'Very High', color: 'red', icon: '🔴' }
-];
-
-const getPriorityColor = (priority: string) => {
-    const colors: Record<string, string> = {
-        'low': 'bg-green-50 text-green-700 border-green-200',
-        'medium': 'bg-blue-50 text-blue-700 border-blue-200',
-        'high': 'bg-orange-50 text-orange-700 border-orange-200',
-        'very-high': 'bg-red-50 text-red-700 border-red-200'
-    };
-    return colors[priority] || 'bg-slate-50 text-slate-700 border-slate-200';
-};
-
-export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingId, meetingTeamIds, onSubmit }: AddWorkFormProps) {
-    const [formData, setFormData] = useState<AddWorkFormData>({
-        workTitle: "",
+export default function AddMeetingForm({ meetingId, defaultDateTime, onClose, onSubmit }: AddMeetingFormProps) {
+    const [formData, setFormData] = useState<AddMeetingFormData>({
+        meetingTitle: "",
         assignToTeamIds: [],
-        deadlineDateTime: "", // Changed to single field
-        priority: "medium",
+        dateTime: "",
         description: "",
+        notes: "",
+        status: "pending",
     });
 
     const [teams, setTeams] = useState<TeamOption[]>([]);
     const [loadingTeams, setLoadingTeams] = useState(false);
     const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false);
-    const [isPriorityDropdownOpen, setIsPriorityDropdownOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [isMounted, setIsMounted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const teamDropdownRef = useRef<HTMLDivElement>(null);
-    const priorityDropdownRef = useRef<HTMLDivElement>(null);
-
     const [isAddTeamOpen, setIsAddTeamOpen] = useState(false);
-    const [loadingWork, setLoadingWork] =
-        useState(false);
+    const [loadingMeeting, setLoadingMeeting] = useState(false);
+    const [originalDateTime, setOriginalDateTime] = useState<string | null>(null);
+
     // Set mounted state to avoid hydration issues
     useEffect(() => {
         setIsMounted(true);
@@ -110,77 +91,41 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
         return null;
     };
 
+    // Fetch meeting data for edit mode
     useEffect(() => {
-        if (meetingTeamIds && meetingTeamIds.length > 0 && !workId) {
-            setFormData(prev => ({
-                ...prev,
-                assignToTeamIds: meetingTeamIds
-            }));
-            toast.success(`${meetingTeamIds.length} team(s) auto-assigned from meeting`);
-        }
-    }, [meetingTeamIds, workId]);
-    useEffect(() => {
+        if (!meetingId) return;
 
-        if (!workId) return;
-
-        const fetchWork = async () => {
-
+        const fetchMeeting = async () => {
             try {
-
-                setLoadingWork(true);
-
-                const res: any =
-                    await getWorkById(
-                        workId
-                    );
-
-                const work =
-                    res.data;
+                setLoadingMeeting(true);
+                const res: any = await getMeetingById(meetingId);
+                const meeting = res.data || res;
 
                 setFormData({
-                    workTitle:
-                        work.workTitle || "",
-
-                    assignToTeamIds:
-                        work.assignToTeamIds || [],
-
-                    deadlineDateTime:
-                        work.deadline
-                            ? new Date(
-                                work.deadline
-                            )
-                                .toISOString()
-                                .slice(0, 16)
-                            : "",
-
-                    priority:
-                        work.priority ||
-                        "medium",
-
-                    description:
-                        work.description ||
-                        "",
+                    meetingTitle: meeting.meetingTitle || "",
+                    assignToTeamIds: meeting.assignToTeamIds || [],
+                    dateTime: meeting.dateTime
+                        ? new Date(meeting.dateTime).toISOString().slice(0, 16)
+                        : "",
+                    description: meeting.description || "",
+                    notes: meeting.notes || "",
+                    status: meeting.status || "pending",
                 });
 
+                // Store original date for comparison
+                if (meeting.dateTime) {
+                    setOriginalDateTime(meeting.dateTime);
+                }
             } catch (error: any) {
-
                 console.error(error);
-
-                toast.error(
-                    error?.message ||
-                    "Failed to load work"
-                );
-
+                toast.error(error?.message || "Failed to load meeting");
             } finally {
-
-                setLoadingWork(false);
+                setLoadingMeeting(false);
             }
         };
 
-        fetchWork();
-
-    }, [workId]);
-
+        fetchMeeting();
+    }, [meetingId]);
 
     // Fetch teams from backend
     useEffect(() => {
@@ -188,7 +133,6 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
             try {
                 setLoadingTeams(true);
                 const res = await getAllTeams();
-                console.log(res, "kkk");
 
                 const formattedTeams: TeamOption[] = res.data.map((team: any) => ({
                     id: String(team.teamId),
@@ -213,29 +157,26 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
 
     // Set default selected date from calendar
     useEffect(() => {
-        if (defaultDeadline && !workId) {
-            const localDate = new Date(defaultDeadline);
+        if (defaultDateTime && !meetingId) {
+            const localDate = new Date(defaultDateTime);
 
-            // convert for datetime-local input
+            // Convert for datetime-local input
             localDate.setMinutes(
                 localDate.getMinutes() - localDate.getTimezoneOffset()
             );
 
             setFormData((prev) => ({
                 ...prev,
-                deadlineDateTime: localDate.toISOString().slice(0, 16),
+                dateTime: localDate.toISOString().slice(0, 16),
             }));
         }
-    }, [defaultDeadline, workId]);
+    }, [defaultDateTime, meetingId]);
 
     // Close dropdowns when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (teamDropdownRef.current && !teamDropdownRef.current.contains(event.target as Node)) {
                 setIsTeamDropdownOpen(false);
-            }
-            if (priorityDropdownRef.current && !priorityDropdownRef.current.contains(event.target as Node)) {
-                setIsPriorityDropdownOpen(false);
             }
         };
 
@@ -246,7 +187,7 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
     }, [isMounted]);
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
         setFormData({
             ...formData,
@@ -256,6 +197,17 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
 
     const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setFormData({ ...formData, description: e.target.value });
+    };
+
+    const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setFormData({ ...formData, notes: e.target.value });
+    };
+
+    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setFormData({
+            ...formData,
+            status: e.target.value as "pending" | "in-progress" | "completed"
+        });
     };
 
     const handleTeamToggle = (teamId: string) => {
@@ -284,17 +236,9 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
         toast.error(`Removed ${team?.name}`);
     };
 
-    const handlePrioritySelect = (priority: AddWorkFormData['priority']) => {
-        setFormData({ ...formData, priority });
-        setIsPriorityDropdownOpen(false);
-        const priorityOption = priorityOptions.find(p => p.value === priority);
-        toast.success(`Priority set to ${priorityOption?.label}`);
-    };
-
     const getSelectedTeams = () => {
         return teams.filter(t => formData.assignToTeamIds.includes(t.id));
     };
-
 
     const filteredTeams = teams.filter(team =>
         team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -303,26 +247,42 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
     );
 
     const validateForm = () => {
-        if (!formData.workTitle.trim()) {
-            toast.error('Please enter a work title');
+        if (!formData.meetingTitle.trim()) {
+            toast.error('Please enter a meeting title');
             return false;
         }
 
         if (formData.assignToTeamIds.length === 0) {
-            toast.error('Please select at least one team to assign this work');
+            toast.error('Please select at least one team to assign this meeting');
             return false;
         }
 
-        if (!formData.deadlineDateTime) {
-            toast.error('Please select a deadline date and time');
+        if (!formData.dateTime) {
+            toast.error('Please select a meeting date and time');
             return false;
         }
 
-        // Validate that deadline is not in the past
-        const deadlineDateTime = new Date(formData.deadlineDateTime);
-        if (deadlineDateTime < new Date()) {
-            toast.error('Deadline cannot be in the past');
-            return false;
+        // Validate date - cannot be in the past for NEW meetings
+        const meetingDateTime = new Date(formData.dateTime);
+        const now = new Date();
+
+        if (!meetingId) {
+            // For new meetings: cannot be in the past
+            if (meetingDateTime < now) {
+                toast.error('Meeting time cannot be in the past');
+                return false;
+            }
+        } else {
+            // For editing: can only change to future dates, or same day
+            const originalDate = originalDateTime ? new Date(originalDateTime) : null;
+            const isSameDay = originalDate &&
+                meetingDateTime.toDateString() === originalDate.toDateString();
+
+            // If trying to set to a past date that's not the original date
+            if (meetingDateTime < now && !isSameDay) {
+                toast.error('Cannot reschedule to a past date');
+                return false;
+            }
         }
 
         if (!formData.description.trim()) {
@@ -333,12 +293,7 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
         return true;
     };
 
-    // In your handleSubmit function, update the payload creation:
-
-    const handleSubmit = async (
-        e: React.FormEvent<HTMLFormElement>
-    ) => {
-
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         if (!validateForm()) {
@@ -346,62 +301,26 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
         }
 
         try {
-
             setSubmitting(true);
 
-            const payload: Work = {
-                workTitle: formData.workTitle,
-
-                assignToTeamIds:
-                    formData.assignToTeamIds,
-
-                deadline: new Date(
-                    formData.deadlineDateTime
-                ).toISOString(),
-
-                priority:
-                    formData.priority === "very-high"
-                        ? "high"
-                        : formData.priority,
-
-                description:
-                    formData.description,
-
-                status: "pending",
-
+            const payload = {
+                meetingTitle: formData.meetingTitle,
+                assignToTeamIds: formData.assignToTeamIds,
+                dateTime: new Date(formData.dateTime).toISOString(),
+                description: formData.description,
+                notes: formData.notes || "",
+                status: formData.status || "pending",
             };
+
+            // UPDATE MEETING
             if (meetingId) {
-                payload.meetingId = meetingId;
+                await updateMeeting(meetingId, payload);
+                toast.success("Meeting updated successfully!");
             }
-
-            let response;
-
-            // UPDATE WORK
-            if (workId) {
-
-                response =
-                    await updateWork(
-                        workId,
-                        payload
-                    );
-
-                toast.success(
-                    "Work updated successfully!"
-                );
-
-            }
-
-            // CREATE WORK
+            // CREATE MEETING
             else {
-
-                response =
-                    await createWork(
-                        payload
-                    );
-
-                toast.success(
-                    `Work "${formData.workTitle}" created successfully!`
-                );
+                await createMeeting(payload);
+                toast.success(`Meeting "${formData.meetingTitle}" created successfully!`);
             }
 
             // OPTIONAL CALLBACK
@@ -411,11 +330,12 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
 
             // RESET FORM
             setFormData({
-                workTitle: "",
+                meetingTitle: "",
                 assignToTeamIds: [],
-                deadlineDateTime: "",
-                priority: "medium",
+                dateTime: "",
                 description: "",
+                notes: "",
+                status: "pending",
             });
 
             setTimeout(() => {
@@ -423,19 +343,26 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
             }, 1000);
 
         } catch (error: any) {
-
             console.error(error);
-
             toast.error(
                 error?.message ||
-                (workId
-                    ? "Failed to update work"
-                    : "Failed to create work")
+                (meetingId
+                    ? "Failed to update meeting"
+                    : "Failed to create meeting")
             );
-
         } finally {
-
             setSubmitting(false);
+        }
+    };
+
+    const getStatusIcon = () => {
+        switch (formData.status) {
+            case "completed":
+                return <CheckCircle size={14} className="text-green-500" />;
+            case "in-progress":
+                return <RefreshCw size={14} className="text-blue-500" />;
+            default:
+                return <Circle size={14} className="text-yellow-500" />;
         }
     };
 
@@ -461,16 +388,17 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
         );
     }
 
-    if (loadingWork) {
-        return <div className="flex items-center justify-center py-10">
-            <div className="flex flex-col items-center gap-3">
-                <Loader size={40} className="animate-spin text-indigo-600 mx-auto mb-3" />
-
-                <p className="text-sm text-slate-500">
-                    Loading team details...
-                </p>
+    if (loadingMeeting) {
+        return (
+            <div className="flex items-center justify-center py-10">
+                <div className="flex flex-col items-center gap-3">
+                    <Loader size={40} className="animate-spin text-indigo-600 mx-auto mb-3" />
+                    <p className="text-sm text-slate-500">
+                        Loading meeting details...
+                    </p>
+                </div>
             </div>
-        </div>
+        );
     }
 
     return (
@@ -500,24 +428,52 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
                 }}
             />
             <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Work Title */}
+                {/* Meeting Title */}
                 <div className="space-y-1.5">
                     <label className="text-xs font-medium text-slate-700">
-                        Work Title <span className="text-red-500">*</span>
+                        Meeting Title <span className="text-red-500">*</span>
                     </label>
                     <div className="relative group">
-                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                        <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                         <input
                             type="text"
-                            name="workTitle"
-                            placeholder="e.g., Develop Dashboard, Design Homepage, Fix Bug #123"
-                            value={formData.workTitle}
+                            name="meetingTitle"
+                            placeholder="e.g., Sprint Planning, Client Review, Team Sync"
+                            value={formData.meetingTitle}
                             onChange={handleChange}
                             className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 group-hover:border-slate-300"
                             autoFocus
                         />
                     </div>
                 </div>
+
+                {/* Meeting Status - Only show for edit mode */}
+                {meetingId && (
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-slate-700">
+                            Meeting Status
+                        </label>
+                        <div className="relative group">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                                {getStatusIcon()}
+                            </div>
+                            <select
+                                name="status"
+                                value={formData.status}
+                                onChange={handleStatusChange}
+                                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-8 text-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 appearance-none cursor-pointer"
+                            >
+                                <option value="pending">Pending</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">
+                            Track the overall progress of this meeting
+                        </p>
+                    </div>
+                )}
 
                 {/* Assign to Multiple Teams */}
                 <div className="space-y-1.5">
@@ -661,100 +617,47 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
                                 </div>
                             </div>
                         )}
-
                     </div>
 
                     {/* Add New Team Button */}
                     <button
                         type="button"
                         onClick={() => setIsAddTeamOpen(true)}
-                        className="mt-3 flex items-END
-                         gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+                        className="mt-3 flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
                     >
                         <Plus size={16} />
                         Add New Team
                     </button>
                 </div>
 
-
-
-                {/* Deadline DateTime - Single field with datetime-local */}
+                {/* Meeting Date & Time */}
                 <div className="space-y-1.5">
                     <label className="text-xs font-medium text-slate-700">
-                        Deadline <span className="text-red-500">*</span>
+                        Meeting Date & Time <span className="text-red-500">*</span>
                     </label>
                     <div className="relative group">
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                         <input
                             type="datetime-local"
-                            name="deadlineDateTime"
-                            value={formData.deadlineDateTime}
+                            name="dateTime"
+                            value={formData.dateTime}
                             onChange={handleChange}
-                            // min={getMinDateTime()}
                             className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 group-hover:border-slate-300"
                         />
                     </div>
+                    {meetingId && originalDateTime && (
+                        <p className="text-xs text-amber-600 mt-1">
+                            Original date: {new Date(originalDateTime).toLocaleString()}
+                        </p>
+                    )}
                     <p className="text-xs text-slate-500 mt-1">
-                        Select date and time for the work deadline
+                        {meetingId
+                            ? "You can reschedule to a future date"
+                            : "Select the date and time for the meeting (cannot be in the past)"}
                     </p>
                 </div>
 
-                {/* Priority Dropdown */}
-                <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-700">
-                        Priority <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative" ref={priorityDropdownRef}>
-                        <button
-                            type="button"
-                            onClick={() => setIsPriorityDropdownOpen(!isPriorityDropdownOpen)}
-                            className={`w-full rounded-lg border bg-white py-2 px-3 text-sm outline-none transition-all duration-200 flex items-center justify-between hover:border-slate-300 ${formData.priority
-                                ? 'border-indigo-300 ring-1 ring-indigo-200'
-                                : 'border-slate-200'
-                                } focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100`}
-                        >
-                            <div className="flex items-center gap-2">
-                                <Flag size={14} className={formData.priority ? 'text-indigo-500' : 'text-slate-400'} />
-                                {formData.priority ? (
-                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${getPriorityColor(formData.priority)}`}>
-                                        {priorityOptions.find(p => p.value === formData.priority)?.label}
-                                    </span>
-                                ) : (
-                                    <span className="text-slate-500">Select priority</span>
-                                )}
-                            </div>
-                            <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${isPriorityDropdownOpen ? "rotate-180" : ""}`} />
-                        </button>
-
-                        {isPriorityDropdownOpen && (
-                            <div className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                                <div className="py-1">
-                                    {priorityOptions.map((priority) => (
-                                        <button
-                                            key={priority.value}
-                                            type="button"
-                                            onClick={() => handlePrioritySelect(priority.value as AddWorkFormData['priority'])}
-                                            className={`w-full px-3 py-2 text-left hover:bg-slate-50 transition-colors flex items-center justify-between ${formData.priority === priority.value ? 'bg-indigo-50' : ''
-                                                }`}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-lg">{priority.icon}</span>
-                                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${getPriorityColor(priority.value)}`}>
-                                                    {priority.label}
-                                                </span>
-                                            </div>
-                                            {formData.priority === priority.value && (
-                                                <Check size={14} className="text-indigo-600" />
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Description with Normal Textarea */}
+                {/* Description */}
                 <div className="space-y-1.5">
                     <label className="text-xs font-medium text-slate-700">
                         Description <span className="text-red-500">*</span>
@@ -763,25 +666,51 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
                         <FileText className="absolute left-3 top-3 w-3.5 h-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                         <textarea
                             name="description"
-                            rows={6}
-                            placeholder="Describe the work details, requirements, acceptance criteria..."
+                            rows={4}
+                            placeholder="Describe the meeting agenda, objectives, discussion points..."
                             value={formData.description}
                             onChange={handleDescriptionChange}
                             className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 group-hover:border-slate-300 resize-y"
                         />
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                        Provide detailed information about the work to be done
-                    </p>
                 </div>
 
-                {/* Deadline Warning */}
-                {formData.deadlineDateTime && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 animate-in slide-in-from-top-1 duration-200">
+                {/* Notes - Only show for edit mode */}
+                {meetingId && (
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-slate-700">
+                            Meeting Notes
+                        </label>
+                        <div className="relative group">
+                            <FileText className="absolute left-3 top-3 w-3.5 h-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                            <textarea
+                                name="notes"
+                                rows={3}
+                                placeholder="Add any additional notes, action items, or important information..."
+                                value={formData.notes}
+                                onChange={handleNotesChange}
+                                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 group-hover:border-slate-300 resize-y"
+                            />
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">
+                            Add meeting notes, action items, or key takeaways
+                        </p>
+                    </div>
+                )}
+
+                {/* Meeting Time Warning */}
+                {formData.dateTime && (
+                    <div className={`rounded-lg p-2.5 animate-in slide-in-from-top-1 duration-200 ${meetingId && originalDateTime && new Date(formData.dateTime).toDateString() !== new Date(originalDateTime).toDateString()
+                        ? 'bg-amber-50 border border-amber-200'
+                        : 'bg-blue-50 border border-blue-200'
+                        }`}>
                         <div className="flex items-center gap-2">
-                            <AlertCircle size={14} className="text-amber-600" />
-                            <span className="text-xs text-amber-700">
-                                Deadline: {new Date(formData.deadlineDateTime).toLocaleString()}
+                            <Clock size={14} className={meetingId && originalDateTime && new Date(formData.dateTime).toDateString() !== new Date(originalDateTime).toDateString() ? "text-amber-600" : "text-blue-600"} />
+                            <span className={`text-xs ${meetingId && originalDateTime && new Date(formData.dateTime).toDateString() !== new Date(originalDateTime).toDateString() ? "text-amber-700" : "text-blue-700"}`}>
+                                {meetingId && originalDateTime && new Date(formData.dateTime).toDateString() !== new Date(originalDateTime).toDateString()
+                                    ? `Meeting rescheduled to: ${new Date(formData.dateTime).toLocaleString()}`
+                                    : `Meeting scheduled for: ${new Date(formData.dateTime).toLocaleString()}`
+                                }
                             </span>
                         </div>
                     </div>
@@ -804,14 +733,13 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
                         {submitting ? (
                             <>
                                 <Loader size={16} className="animate-spin" />
-                                {workId ? "Updating..." : "Creating..."}
+                                {meetingId ? "Updating..." : "Creating..."}
                             </>
                         ) : (
-                            workId ? "Update Work" : "Create Work"
+                            meetingId ? "Update Meeting" : "Create Meeting"
                         )}
                     </button>
                 </div>
-
             </form>
 
             {/* Add Team Modal */}
@@ -824,11 +752,10 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
                     onClose={() => {
                         setIsAddTeamOpen(false);
 
-                        // OPTIONAL: refresh teams after creating
+                        // Refresh teams after creating
                         const fetchTeams = async () => {
                             try {
                                 const res = await getAllTeams();
-
                                 const formattedTeams: TeamOption[] = res.data.map((team: any) => ({
                                     id: String(team.teamId),
                                     name: team.teamName,
@@ -836,7 +763,6 @@ export default function AddWorkForm({ workId, defaultDeadline, onClose, meetingI
                                     teamLead: team.teamLead || null,
                                     memberCount: team.memberIds?.length || 0,
                                 }));
-
                                 setTeams(formattedTeams);
                             } catch (err) {
                                 console.error(err);

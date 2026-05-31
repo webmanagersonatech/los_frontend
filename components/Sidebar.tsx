@@ -17,7 +17,8 @@ import {
   HelpCircle,
   TrendingUp,
   ClipboardList,
-  FileText,
+  Users2,
+
 
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -26,8 +27,8 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Team Members", href: "/team-members", icon: UserPlus },
   { name: "Teams", href: "/teams", icon: Briefcase },
+  { name: "Meetings", href: "/meetings", icon: Users2, },
   { name: "Works", href: "/works", icon: ClipboardList },
-  // { name: "Reports", href: "/reports", icon: FileText },
   { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Profile Settings", href: "/profile", icon: Settings },
 ];

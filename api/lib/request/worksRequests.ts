@@ -63,7 +63,7 @@ export interface Work {
     deadline: string;
 
     priority?: "low" | "medium" | "high";
-
+    meetingId?: string;
     description?: string;
 
     status?:

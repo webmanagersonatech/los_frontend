@@ -9,7 +9,7 @@ import ConfirmModal from "../../components/ConfirmModal";
 import { getWorkById } from "../../api/lib/request/worksRequests";
 import toast from "react-hot-toast";
 import CommonModal from "../../components/CommonviewModal";
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     Search,
     Users,
@@ -321,7 +321,7 @@ export default function WorksPage() {
         try {
             setLoading(true);
 
-            const response:any = await getWorkById(workId);
+            const response: any = await getWorkById(workId);
 
 
             const singleWork = response?.data || response;
