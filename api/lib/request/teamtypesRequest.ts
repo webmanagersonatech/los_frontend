@@ -41,7 +41,6 @@ api.interceptors.response.use(
                 message === "Not authorized"
             ) {
                 localStorage.removeItem("token");
-
                 window.location.href = "/";
             }
         }
@@ -50,72 +49,38 @@ api.interceptors.response.use(
     }
 );
 
-// WORK INTERFACE
-export interface Work {
+export interface TeamType {
     _id?: string;
-
-    workId?: string;
-
-    workTitle: string;
-
-    assignToTeamIds: string[];
-
-    deadline: string;
-
-    priority?: "low" | "medium" | "high";
-    meetingId?: string;
-    description?: string;
-
-    status?:
-    | "pending"
-    | "in_progress"
-    | "completed"
-    | "on_hold"
-    | "cancelled";
-
-    createdBy?: string;
-
+    name: string;
+    status?: "active" | "inactive";
     createdAt?: string;
-
     updatedAt?: string;
 }
 
-// PAGINATION RESPONSE
 export interface PaginatedResponse<T> {
     success: boolean;
-
     message?: string;
-
-    works: {
+    teamTypes: {
         docs: T[];
-
         totalDocs: number;
-
         limit: number;
-
         totalPages: number;
-
         page: number;
-
         pagingCounter: number;
-
         hasPrevPage: boolean;
-
         hasNextPage: boolean;
-
         prevPage: number | null;
-
         nextPage: number | null;
     };
 }
 
-// CREATE WORK
-export async function createWork(
-    data: Work
+// CREATE TEAM TYPE
+export async function createTeamType(
+    data: TeamType
 ) {
     try {
         const response = await api.post(
-            "/work",
+            "/team-types",
             data
         );
 
@@ -123,103 +88,80 @@ export async function createWork(
     } catch (error: any) {
         throw new Error(
             error?.response?.data?.message ||
-            "Failed to create work."
+            "Failed to create team type."
         );
     }
 }
 
-// GET WORKS
-export async function getWorks(
+// GET TEAM TYPES (PAGINATED)
+export async function getTeamTypes(
     page = 1,
     limit = 10,
     search = "",
-    status = "all",
-    priority = "all",
-    meetingId = ""
-): Promise<PaginatedResponse<Work>> {
+    status = "all"
+): Promise<PaginatedResponse<TeamType>> {
     try {
-        const response = await api.get(
-            `/work?page=${page}&limit=${limit}&search=${search}&status=${status}&priority=${priority}&meetingId=${meetingId}`
-        );
+        const response =
+            await api.get<
+                PaginatedResponse<TeamType>
+            >(
+                `/team-types?page=${page}&limit=${limit}&search=${search}&status=${status}`
+            );
 
         return response.data;
     } catch (error: any) {
         throw new Error(
             error?.response?.data?.message ||
-            "Failed to fetch works."
+            "Failed to fetch team types."
         );
     }
 }
 
-export const updateWorkStatus = async (
-    workId: string,
-    status: string
-) => {
-    const response = await api.put(`/work/${workId}/status`, {
-        status,
-    });
-
-    return response.data;
-};
-
-// GET ALL WORKS
-export async function getAllWorks(): Promise<{
+// GET ALL TEAM TYPES
+export async function getAllTeamTypes(): Promise<{
     success: boolean;
-    data: Pick<
-        Work,
-        "_id" |
-        "workId" |
-        "workTitle" |
-        "status"
-    >[];
+    data: TeamType[];
 }> {
     try {
-        const response = await api.get<{
-            success: boolean;
-            data: Pick<
-                Work,
-                "_id" |
-                "workId" |
-                "workTitle" |
-                "status"
-            >[];
-        }>("/work/all");
+        const response: any = await api.get(
+            "/team-types/all"
+        );
 
         return response.data;
     } catch (error: any) {
         throw new Error(
             error?.response?.data?.message ||
-            "Failed to fetch all works."
+            "Failed to fetch team types."
         );
     }
 }
 
-// GET SINGLE WORK
-export async function getWorkById(
+// GET SINGLE TEAM TYPE
+export async function getTeamTypeById(
     id: string
 ) {
     try {
-        const response = await api.get(
-            `/work/${id}`
+        const response: any = await api.get(
+            `/team-types/${id}`
         );
 
         return response.data;
     } catch (error: any) {
         throw new Error(
             error?.response?.data?.message ||
-            "Failed to fetch work."
+            "Failed to fetch team type."
         );
     }
 }
 
-// UPDATE WORK
-export async function updateWork(
+// UPDATE TEAM TYPE
+export async function updateTeamType(
     id: string,
-    data: Partial<Work>
+    data: Partial<TeamType>
 ) {
     try {
         const response = await api.put(
-            `/work/${id}`,
+            `/team-types/${id}`,
             data
         );
 
@@ -227,25 +169,25 @@ export async function updateWork(
     } catch (error: any) {
         throw new Error(
             error?.response?.data?.message ||
-            "Failed to update work."
+            "Failed to update team type."
         );
     }
 }
 
-// DELETE WORK
-export async function deleteWork(
+// DELETE TEAM TYPE
+export async function deleteTeamType(
     id: string
 ) {
     try {
         const response = await api.delete(
-            `/work/${id}`
+            `/team-types/${id}`
         );
 
         return response.data;
     } catch (error: any) {
         throw new Error(
             error?.response?.data?.message ||
-            "Failed to delete work."
+            "Failed to delete team type."
         );
     }
 }

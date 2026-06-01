@@ -4,6 +4,8 @@ import Modal from "../../components/Modal";
 import AddTeamMember from "../../components/forms/Addteammembersform";
 import { useState, useRef, useEffect } from "react";
 import { getAllTeamMembers } from '../../api/lib/request/teammemberRequest';
+import { getAllTeamTypes } from '../../api/lib/request/teamtypesRequest';
+import AddTeamTypeForm from './Addteamtypeform';
 import { createTeam, getTeamById, updateTeam } from '../../api/lib/request/teamsRequest';
 import {
     Users,
@@ -40,17 +42,7 @@ interface MemberOption {
     avatar?: string;
 }
 
-// Available team types
-const teamTypes = [
-    { value: "development", label: "Development", color: "blue" },
-    { value: "design", label: "Design", color: "purple" },
-    { value: "marketing", label: "Marketing", color: "pink" },
-    { value: "sales", label: "Sales", color: "green" },
-    { value: "hr", label: "Human Resources", color: "amber" },
-    { value: "product", label: "Product", color: "indigo" },
-    { value: "operations", label: "Operations", color: "slate" },
-    { value: "support", label: "Customer Support", color: "teal" },
-];
+
 
 const SelectedMemberChip = ({ member, onRemove }: { member: MemberOption; onRemove: () => void }) => (
     <div className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-1">
@@ -154,6 +146,9 @@ export default function AddTeamForm({ teamId, onClose, onSubmit, existingMembers
     const [isFetchingTeam, setIsFetchingTeam] = useState(false);
     const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
     const typeDropdownRef = useRef<HTMLDivElement>(null);
+    const [teamTypes, setTeamTypes] = useState<any[]>([]);
+    const [loadingTeamTypes, setLoadingTeamTypes] = useState(false);
+    const [isAddTeamTypeOpen, setIsAddTeamTypeOpen] = useState(false);
     const memberDropdownRef = useRef<HTMLDivElement>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -167,7 +162,7 @@ export default function AddTeamForm({ teamId, onClose, onSubmit, existingMembers
 
                 setIsFetchingTeam(true);
 
-                const response:any= await getTeamById(teamId);
+                const response: any = await getTeamById(teamId);
 
                 const team = response.data || response;
 
@@ -234,6 +229,32 @@ export default function AddTeamForm({ teamId, onClose, onSubmit, existingMembers
             fetchMembers();
         }
     }, [existingMembers]);
+
+    const fetchTeamTypes = async () => {
+        try {
+            setLoadingTeamTypes(true);
+            const res = await getAllTeamTypes();
+
+            // Transform the API response to match what the dropdown expects
+            const transformedTypes = (res.data || []).map((type: any) => ({
+                value: type.name,     // Use name as the value
+                label: type.name,     // Use name as the label
+                color: "slate"        // Default color (you can make this dynamic)
+            }));
+
+            setTeamTypes(transformedTypes);
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to load team types");
+        } finally {
+            setLoadingTeamTypes(false);
+        }
+    };
+
+
+    useEffect(() => {
+        fetchTeamTypes();
+    }, []);
 
     const filteredMembers = members.filter(
         (member) =>
@@ -315,12 +336,17 @@ export default function AddTeamForm({ teamId, onClose, onSubmit, existingMembers
     };
 
     const getTypeLabel = (typeValue: string) => {
-        return teamTypes.find((t) => t.value === typeValue)?.label || "";
+        // Since value is the name, just return it
+        return typeValue;
     };
 
     const getTypeColor = (typeValue: string) => {
-        const type = teamTypes.find((t) => t.value === typeValue);
-        const colors: Record<string, string> = {
+        // Generate color based on the type name
+        const colors = ["blue", "purple", "pink", "green", "amber", "indigo", "teal", "slate"];
+        const colorIndex = typeValue.length % colors.length;
+        const color = colors[colorIndex];
+
+        const colorStyles: Record<string, string> = {
             blue: "bg-blue-50 text-blue-700 border-blue-200",
             purple: "bg-purple-50 text-purple-700 border-purple-200",
             pink: "bg-pink-50 text-pink-700 border-pink-200",
@@ -330,7 +356,8 @@ export default function AddTeamForm({ teamId, onClose, onSubmit, existingMembers
             slate: "bg-slate-100 text-slate-700 border-slate-200",
             teal: "bg-teal-50 text-teal-700 border-teal-200",
         };
-        return colors[type?.color || "slate"];
+
+        return colorStyles[color] || colorStyles.slate;
     };
 
     const showValidationErrors = () => {
@@ -539,12 +566,29 @@ export default function AddTeamForm({ teamId, onClose, onSubmit, existingMembers
                             </div>
                         )}
                     </div>
-                    {!formData.teamType && (
-                        <p className="text-[11px] text-amber-600 flex items-center gap-1">
-                            <span className="inline-block w-1 h-1 rounded-full bg-amber-500"></span>
-                            Please select a team type
-                        </p>
-                    )}
+                    {/* Always show the add button, but only show warning if no type selected */}
+                    <div className="flex items-center justify-between mt-2">
+                        {!formData.teamType && (
+                            <p className="text-[11px] text-amber-600 flex items-center gap-1">
+                                <span className="inline-block w-1 h-1 rounded-full bg-amber-500"></span>
+                                Please select a team type
+                            </p>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsTypeDropdownOpen(false);
+                                setIsAddTeamTypeOpen(true);
+                            }}
+                            className={`inline-flex items-center gap-1 text-xs font-medium transition ${!formData.teamType
+                                ? 'text-indigo-600 hover:text-indigo-700'
+                                : 'text-slate-500 hover:text-indigo-600'
+                                }`}
+                        >
+                            <span className="text-base">+</span>
+                            Add Team Type
+                        </button>
+                    </div>
                 </div>
 
                 {/* Description */}
@@ -717,6 +761,26 @@ export default function AddTeamForm({ teamId, onClose, onSubmit, existingMembers
                             console.error(err);
                             toast.error("Failed to refresh members");
                         }
+                    }}
+                />
+            </Modal>
+
+            <Modal
+                isOpen={isAddTeamTypeOpen}
+                onClose={() =>
+                    setIsAddTeamTypeOpen(false)
+                }
+                title="Add Team Type"
+            >
+                <AddTeamTypeForm
+                    onClose={async () => {
+                        setIsAddTeamTypeOpen(false);
+
+                        await fetchTeamTypes();
+
+                        toast.success(
+                            "Team types refreshed"
+                        );
                     }}
                 />
             </Modal>

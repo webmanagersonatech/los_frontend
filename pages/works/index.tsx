@@ -8,6 +8,7 @@ import { getWorks, deleteWork, Work, updateWorkStatus } from "../../api/lib/requ
 import ConfirmModal from "../../components/ConfirmModal";
 import { getWorkById } from "../../api/lib/request/worksRequests";
 import toast from "react-hot-toast";
+import { useRouter } from "next/router";
 import CommonModal from "../../components/CommonviewModal";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -195,7 +196,11 @@ interface FormattedWork {
 }
 
 // ========== MAIN COMPONENT ==========
+
 export default function WorksPage() {
+
+    const router = useRouter();
+    const { meetingId } = router.query;
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [priorityFilter, setPriorityFilter] = useState("all");
@@ -229,7 +234,8 @@ export default function WorksPage() {
                 10,
                 searchQuery,
                 statusFilter,
-                priorityFilter
+                priorityFilter,
+                meetingId as string
             );
 
             if (response?.works?.docs) {
@@ -263,7 +269,7 @@ export default function WorksPage() {
         } finally {
             setLoading(false);
         }
-    }, [currentPage, searchQuery, statusFilter, priorityFilter]);
+    }, [currentPage, searchQuery, statusFilter, priorityFilter,meetingId]);
 
     // Delete work
     const confirmDelete = async () => {
@@ -378,8 +384,10 @@ export default function WorksPage() {
 
     // Fetch works when dependencies change
     useEffect(() => {
+        if (!router.isReady) return;
+
         fetchWorks();
-    }, [fetchWorks]);
+    }, [router.isReady, fetchWorks]);
 
     // Helper function to get days remaining
     const getDaysRemaining = (deadline: string) => {

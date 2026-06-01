@@ -32,15 +32,15 @@ export default function Modal({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
+                    className="fixed inset-0 z-[9999] bg-black/50 p-4 flex items-center justify-center"
                 >
-                    {/* BACKDROP */}
+                    {/* Backdrop */}
                     <div
                         className="absolute inset-0"
                         onClick={onClose}
                     />
 
-                    {/* MODAL */}
+                    {/* Modal */}
                     <motion.div
                         initial={{
                             opacity: 0,
@@ -58,24 +58,24 @@ export default function Modal({
                             y: 20,
                         }}
                         transition={{ duration: 0.2 }}
-                        className={`relative w-full ${sizeClasses[size]} rounded-2xl bg-white shadow-2xl`}
+                        className={`relative w-full ${sizeClasses[size]} bg-white rounded-2xl shadow-2xl max-h-[90vh] flex flex-col`}
                     >
-                        {/* HEADER */}
-                        <div className="flex items-center justify-between border-b border-slate-100 p-4">
-                            <h3 className="text-base font-semibold text-slate-800">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-slate-200 shrink-0">
+                            <h3 className="text-lg font-semibold text-slate-800">
                                 {title}
                             </h3>
 
                             <button
                                 onClick={onClose}
-                                className="rounded-lg p-1 transition hover:bg-slate-100"
+                                className="p-1 rounded-lg hover:bg-slate-100 transition"
                             >
                                 <X size={18} />
                             </button>
                         </div>
 
-                        {/* BODY */}
-                        <div className="p-4">
+                        {/* Scrollable Body */}
+                        <div className="flex-1 overflow-y-auto p-4">
                             {children}
                         </div>
                     </motion.div>

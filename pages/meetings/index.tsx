@@ -194,7 +194,7 @@ export default function MeetingsPage() {
                     _id: meeting._id,
                     meetingId: meeting.meetingId,
                     meetingTitle: meeting.meetingTitle,
-                     work: meeting.work,
+                    work: meeting.work,
                     description: meeting.description || "",
                     assignToTeamIds: meeting.assignToTeamIds || [],
                     dateTime: meeting.dateTime,
@@ -284,7 +284,7 @@ export default function MeetingsPage() {
 
     const handleViewWork = (meeting: FormattedMeeting) => {
         // You can implement view work logic here
-        router.push(`/works?meetingId=${meeting._id}`);
+        router.push(`/works?meetingId=${meeting.meetingId}`);
     };
     // Handle Edit Session
     const handleEditSession = (meetingId: string, reMeetingId: string) => {
@@ -491,7 +491,7 @@ export default function MeetingsPage() {
             header: "Work",
             key: "work",
             render: (meeting: any) => {
-          
+
 
                 return meeting.work?.workId ? (
                     <button
