@@ -119,7 +119,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Footer */}
         <footer className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 py-4 px-4 md:px-6 mt-auto">
           <div className="text-center text-sm text-gray-600 dark:text-gray-400">
-            <p>© {currentYear} Your Company Name. All rights reserved.</p>
+            <p>© {currentYear} Los. All rights reserved.</p>
           </div>
         </footer>
       </div>
