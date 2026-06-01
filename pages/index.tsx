@@ -351,7 +351,10 @@ const LoginPage: React.FC = () => {
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
+                  <Mail
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-black z-10"
+                    size={18}
+                  />
                   <input
                     type="email"
                     name="email"
@@ -382,7 +385,7 @@ const LoginPage: React.FC = () => {
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-black z-10" size={18} />
                   <input
                     type={showPassword ? "text" : "password"}
                     name="password"
