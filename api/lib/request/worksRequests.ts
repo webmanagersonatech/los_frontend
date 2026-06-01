@@ -138,7 +138,7 @@ export async function getWorks(
     meetingId = ""
 ): Promise<PaginatedResponse<Work>> {
     try {
-        const response = await api.get(
+        const response:any= await api.get(
             `/work?page=${page}&limit=${limit}&search=${search}&status=${status}&priority=${priority}&meetingId=${meetingId}`
         );
 
