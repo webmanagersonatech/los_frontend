@@ -124,7 +124,7 @@ export default function AddTeamMember({
 
             setIsFetching(true);
 
-            const response:any =
+            const response: any =
                 await getTeamMemberById(memberId!);
 
             const member =
@@ -185,14 +185,17 @@ export default function AddTeamMember({
         e.preventDefault();
 
         // Validation
-        if (!formData.fullName.trim() || !formData.email.trim() || !formData.role.trim()) {
+        if (!formData.fullName.trim()) {
             toast.error("Please fill in all required fields");
             return;
         }
 
-        // Email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(formData.email)) {
+
+        if (
+            formData.email.trim() &&
+            !emailRegex.test(formData.email)
+        ) {
             toast.error("Please enter a valid email address");
             return;
         }
@@ -357,7 +360,7 @@ export default function AddTeamMember({
             {/* Email */}
             <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-700">
-                    Email <span className="text-red-500">*</span>
+                    Email
                 </label>
                 <div className="relative group">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
@@ -367,7 +370,7 @@ export default function AddTeamMember({
                         placeholder="member@example.com"
                         value={formData.email}
                         onChange={handleChange}
-                        required
+
                         disabled={isSubmitting}
                         className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 group-hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
@@ -377,7 +380,7 @@ export default function AddTeamMember({
             {/* Phone */}
             <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-700">
-                    Phone
+                    Phone<span className="text-red-500">*</span>
                 </label>
                 <div className="relative group">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
@@ -399,6 +402,7 @@ export default function AddTeamMember({
                             });
                         }}
                         maxLength={10}
+                        required
                         disabled={isSubmitting}
                         className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 group-hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
@@ -408,7 +412,7 @@ export default function AddTeamMember({
             {/* Role */}
             <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-700">
-                    Role <span className="text-red-500">*</span>
+                    Role
                 </label>
                 <div className="relative group">
                     <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
@@ -418,7 +422,7 @@ export default function AddTeamMember({
                         placeholder="e.g., Frontend Developer"
                         value={formData.role}
                         onChange={handleChange}
-                        required
+
                         disabled={isSubmitting}
                         className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 group-hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
